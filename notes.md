@@ -18,7 +18,26 @@ Interesting things I have learned about AWS
 
 ## HTML
 
-Interesting things I have learned about HTML
+- HTML provides the structure and content of a web application.
+- The Simon application has multiple HTML pages such as login, game, scores, and about.
+- `deployFiles.sh` automates deploying files to the AWS server.
+- SSH is used to execute commands on the remote server.
+- SCP securely copies files from my computer to the server.
+- Caddy serves the application using the Simon subdomain.
+- My Simon URL is https://simon.findbabysitters.click
+
+## Startup HTML
+
+- HTML provides the structure and content of a web application.
+- The `index.html` file is the default page loaded by the browser.
+- Semantic HTML elements such as `header`, `nav`, `main`, `section`, and `footer` help organize a webpage.
+- The `input` element can collect information such as email, password, location, and dates.
+- Links using the `a` element can connect multiple HTML pages.
+- Application data can be represented with placeholders before JavaScript and the database are implemented.
+- Authentication will eventually allow users to create accounts and log in.
+- Database data will eventually store and display babysitter profiles and information.
+- A third-party service can eventually provide location or map information.
+- WebSocket will eventually provide realtime messaging between users.
 
 ## React
 
