@@ -57,6 +57,7 @@ The application will work on desktop and mobile devices
 I am going to use the required technologies in the following ways.
 
 - **HTML** -HTML will provide the structure for login forms, user profiles, sitter cards, search forms, buttons, and request information
+- **WebSocket placeholder** - The messages page displays a realtime chat placeholder for communication between users.
 - **CSS** - CSS will be used to style the application and make it responsive on desktop and mobile devices. It will control layout, colors, spacing, sitter cards, forms, and buttons.
 - **React** - React will be used to create reusable components such as Login, SitterCard, SitterProfile, Search, RequestForm, and UserProfile. React routing will allow users to move between different views of the application.
 - **Service** - The backend service will provide endpoints for registration, login, logout, retrieving babysitter profiles, searching for babysitters, sending requests, and updating request status.
@@ -91,16 +92,16 @@ For this deliverable I did the following. I checked the box `[x]` and added a de
 
 For this deliverable I did the following. I checked the box `[x]` and added a description for things I completed.
 
-- [ ] I completed the prerequisites for this deliverable (Simon deployed, GitHub link, Git commits)
-- [ ] **HTML pages** - I did not complete this part of the deliverable.
-- [ ] **Proper HTML element usage** - I did not complete this part of the deliverable.
-- [ ] **Links** - I did not complete this part of the deliverable.
-- [ ] **Text** - I did not complete this part of the deliverable.
-- [ ] **3rd party API placeholder** - I did not complete this part of the deliverable.
-- [ ] **Images** - I did not complete this part of the deliverable.
-- [ ] **Login placeholder** - I did not complete this part of the deliverable.
-- [ ] **DB data placeholder** - I did not complete this part of the deliverable.
-- [ ] **WebSocket placeholder** - I did not complete this part of the deliverable.
+- [x] I completed the prerequisites for this deliverable (Simon deployed, GitHub link, Git commits)
+- [x] **HTML pages** - I did not complete this part of the deliverable.
+- [x] **Proper HTML element usage** - I did not complete this part of the deliverable.
+- [x] **Links** - I did not complete this part of the deliverable.
+- [x] **Text** - I did not complete this part of the deliverable.
+- [x] **3rd party API placeholder** - I did not complete this part of the deliverable.
+- [x] **Images** - I did not complete this part of the deliverable.
+- [x] **Login placeholder** - I did not complete this part of the deliverable.
+- [x] **DB data placeholder** - I did not complete this part of the deliverable.
+- [x] **WebSocket placeholder** - I did not complete this part of the deliverable.
 
 ## 🚀 CSS deliverable
 
