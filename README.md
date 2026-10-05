@@ -1,5 +1,7 @@
-# Your startup name here
+# name and website
 NearbySitter
+https://startup.findbabysitters.click
+
 
 [My Notes](notes.md)
 
@@ -17,7 +19,7 @@ Finding a trustworthy babysitter can be stressful and time-consuming. NearbySitt
 
 ### Design
 
-![Design image](placeholder.png)
+![Design image](NearbySitter.png)
 
 The application will have several main screens:
 
