@@ -42,3 +42,11 @@ Interesting things I have learned about AWS
 ## React
 
 Interesting things I have learned about React
+
+## Simon CSS
+
+I learned how to use CSS to make websites more visually appealing and responsive. I learned how to use Flexbox to organize the header, main content, and footer. I also learned how media queries can change the layout depending on the screen size.
+
+I learned that `main.css` contains common styles for the entire website, while `play.css`, `scores.css`, and `about.css` provide styles for individual pages.
+
+I successfully deployed Simon CSS to my AWS server.
