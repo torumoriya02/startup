@@ -112,10 +112,10 @@ For this deliverable I did the following. I checked the box `[x]` and added a de
 - [x] I completed the prerequisites for this deliverable (Simon deployed, GitHub link, Git commits)
 - [x] **Visually appealing colors and layout. No overflowing elements.** - I did not complete this part of the deliverable.
 - [x] **Use of a CSS framework** - I completed this part of the deliverable.
-- [ ] **All visual elements styled using CSS** - I did complete this part of the deliverable.
-- [ ] **Responsive to window resizing using flexbox and/or grid display** - I did complete this part of the deliverable.
-- [ ] **Use of a imported font** - I did complete this part of the deliverable.
-- [ ] **Use of different types of selectors including element, class, ID, and pseudo selectors** - I did complete this part of the deliverable.
+- [x] **All visual elements styled using CSS** - I did complete this part of the deliverable.
+- [x] **Responsive to window resizing using flexbox and/or grid display** - I did complete this part of the deliverable.
+- [x] **Use of a imported font** - I did complete this part of the deliverable.
+- [x] **Use of different types of selectors including element, class, ID, and pseudo selectors** - I did complete this part of the deliverable.
 
 ## 🚀 React part 1: Routing deliverable
 
