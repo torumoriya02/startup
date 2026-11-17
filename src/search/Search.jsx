@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 
 const sitters = [
   {
     id: 1,
     name: 'Sarah Jenkins',
+    location: 'Chicago, IL',
     rating: 4.9,
     reviews: 24,
     price: 22,
@@ -16,6 +16,7 @@ const sitters = [
   {
     id: 2,
     name: 'Michael Chen',
+    location: 'Chicago, IL',
     rating: 4.8,
     reviews: 15,
     price: 18,
@@ -27,6 +28,7 @@ const sitters = [
   {
     id: 3,
     name: 'Elena Rodriguez',
+    location: 'Provo, UT',
     rating: 5.0,
     reviews: 42,
     price: 25,
@@ -38,6 +40,7 @@ const sitters = [
   {
     id: 4,
     name: 'Jessica Taylor',
+    location: 'Provo, UT',
     rating: 4.7,
     reviews: 8,
     price: 20,
@@ -52,31 +55,62 @@ export default function Search() {
   const [experience, setExperience] = useState('any');
   const [sortOrder, setSortOrder] = useState('recommended');
   const [appliedExperience, setAppliedExperience] = useState('any');
+
   const [selectedSitter, setSelectedSitter] = useState(null);
   const [message, setMessage] = useState('');
 
+  const [location, setLocation] = useState('Chicago, IL');
+  const [appliedLocation, setAppliedLocation] = useState('Chicago, IL');
+
+  const [date, setDate] = useState(
+    new Date().toLocaleDateString('en-CA')
+  );
+
+  const [appliedDate, setAppliedDate] = useState(date);
+
+  // Filter babysitters by experience and location.
   let results = sitters.filter((sitter) => {
-    return (
+    const matchesExperience =
       appliedExperience === 'any' ||
-      sitter.experience >= Number(appliedExperience)
-    );
+      sitter.experience >= Number(appliedExperience);
+
+    const matchesLocation =
+      sitter.location.toLowerCase().includes(
+        appliedLocation.trim().toLowerCase()
+      );
+
+    return matchesExperience && matchesLocation;
   });
 
+  // Sort search results.
   if (sortOrder === 'price') {
-    results = [...results].sort((a, b) => a.price - b.price);
+    results = [...results].sort(
+      (a, b) => a.price - b.price
+    );
   } else if (sortOrder === 'rating') {
-    results = [...results].sort((a, b) => b.rating - a.rating);
+    results = [...results].sort(
+      (a, b) => b.rating - a.rating
+    );
   }
 
-  const closeModal = () => {
+  // Apply search filters.
+  function handleSearch() {
+    setAppliedExperience(experience);
+    setAppliedLocation(location);
+    setAppliedDate(date);
+  }
+
+  // Close booking modal.
+  function closeModal() {
     setSelectedSitter(null);
     setMessage('');
-  };
+  }
 
-  const previewRequest = () => {
+  // Mock booking request.
+  function previewRequest() {
     alert('Demo only: No booking request was sent.');
     closeModal();
-  };
+  }
 
   return (
     <>
@@ -93,12 +127,16 @@ export default function Search() {
               <label htmlFor="location" className="form-label">
                 Location
               </label>
+
               <input
                 type="text"
                 className="form-control"
                 id="location"
-                placeholder="Enter ZIP Code or City"
-                defaultValue="Chicago, IL"
+                placeholder="Enter City"
+                value={location}
+                onChange={(event) =>
+                  setLocation(event.target.value)
+                }
               />
             </div>
 
@@ -106,11 +144,15 @@ export default function Search() {
               <label htmlFor="date" className="form-label">
                 When?
               </label>
+
               <input
                 type="date"
                 className="form-control"
                 id="date"
-                defaultValue={new Date().toLocaleDateString('en-CA')}
+                value={date}
+                onChange={(event) =>
+                  setDate(event.target.value)
+                }
               />
             </div>
 
@@ -118,11 +160,14 @@ export default function Search() {
               <label htmlFor="experience" className="form-label">
                 Experience
               </label>
+
               <select
                 id="experience"
                 className="form-select"
                 value={experience}
-                onChange={(event) => setExperience(event.target.value)}
+                onChange={(event) =>
+                  setExperience(event.target.value)
+                }
               >
                 <option value="any">Any Experience</option>
                 <option value="2">2+ Years</option>
@@ -134,7 +179,7 @@ export default function Search() {
             <button
               className="btn btn-primary"
               type="button"
-              onClick={() => setAppliedExperience(experience)}
+              onClick={handleSearch}
             >
               Search
             </button>
@@ -152,13 +197,27 @@ export default function Search() {
               className="form-select sort-select"
               aria-label="Sort babysitters"
               value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value)}
+              onChange={(event) =>
+                setSortOrder(event.target.value)
+              }
             >
-              <option value="recommended">Sort by: Recommended</option>
-              <option value="price">Price: Low to High</option>
-              <option value="rating">Highest Rated</option>
+              <option value="recommended">
+                Sort by: Recommended
+              </option>
+
+              <option value="price">
+                Price: Low to High
+              </option>
+
+              <option value="rating">
+                Highest Rated
+              </option>
             </select>
           </div>
+
+          <p className="text-muted">
+            Searching in {appliedLocation || 'all locations'} for {appliedDate}
+          </p>
 
           <p className="placeholder-note">
             Sample profiles for demonstration only.
@@ -167,7 +226,10 @@ export default function Search() {
 
           <div className="sitter-grid" id="sitter-list">
             {results.length === 0 ? (
-              <p>No sample sitters match this experience filter.</p>
+              <p>
+                No babysitters match your search.
+                Try another location or experience level.
+              </p>
             ) : (
               results.map((sitter) => (
                 <article
@@ -190,17 +252,27 @@ export default function Search() {
 
                   <div className="sitter-card-body">
                     <div className="name-row">
-                      <h3 className="sitter-name">{sitter.name}</h3>
+                      <h3 className="sitter-name">
+                        {sitter.name}
+                      </h3>
+
                       <span className="rating">
                         ★ {sitter.rating.toFixed(1)}
                       </span>
                     </div>
 
                     <p className="meta">
-                      {sitter.distance} • {sitter.reviews} example reviews
+                      {sitter.location} • {sitter.distance}
                     </p>
 
-                    <p className="sitter-bio">{sitter.bio}</p>
+                    <p className="meta">
+                      {sitter.reviews} example reviews •{' '}
+                      {sitter.experience} years of experience
+                    </p>
+
+                    <p className="sitter-bio">
+                      {sitter.bio}
+                    </p>
 
                     <div className="tags">
                       {sitter.tags.map((tag) => (
@@ -210,7 +282,9 @@ export default function Search() {
                       ))}
                     </div>
 
-                    <div className="price">${sitter.price}/hr</div>
+                    <div className="price">
+                      ${sitter.price}/hr
+                    </div>
 
                     <button
                       className="btn btn-outline-primary w-100 mt-3"
@@ -257,13 +331,22 @@ export default function Search() {
               Request {selectedSitter.name}
             </h2>
 
+            <p>Location: {selectedSitter.location}</p>
+
+            <p>Date: {appliedDate}</p>
+
+            <p>Rate: ${selectedSitter.price}/hr</p>
+
             <p className="mb-3">
               This is a demonstration booking request.
               No actual message will be sent.
             </p>
 
             <div className="mb-3">
-              <label htmlFor="booking-message" className="form-label">
+              <label
+                htmlFor="booking-message"
+                className="form-label"
+              >
                 Message to Sitter
               </label>
 
@@ -273,7 +356,9 @@ export default function Search() {
                 rows={4}
                 placeholder="Write your message here..."
                 value={message}
-                onChange={(event) => setMessage(event.target.value)}
+                onChange={(event) =>
+                  setMessage(event.target.value)
+                }
               />
             </div>
 
