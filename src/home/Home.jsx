@@ -1,139 +1,147 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-export default function Home() {
-  const handleLogin = (event) => {
-    event.preventDefault();
-    alert('Login will be available in a future update.');
-  };
+export default function Home({
+  userName,
+  onLogin,
+  onLogout,
+}) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleCreateAccount = () => {
-    alert('Account registration will be available soon.');
-  };
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+
+    // Mock authentication.
+    // This will be replaced with a backend service.
+    onLogin(email.trim());
+
+    setEmail('');
+    setPassword('');
+    setError('');
+  }
 
   return (
-    <main>
-      <section className="hero">
-        <h1>Find a trusted babysitter near you</h1>
+    <main className="container py-5">
+      <section className="text-center py-5">
+        <h1>Find Trusted Babysitters Near You</h1>
+
         <p>
-          Discover local babysitters, explore their experience,
-          compare hourly rates, and find the right match
-          for your family's needs.
+          Connect with local babysitters and find
+          the right care for your family.
         </p>
 
-        <Link className="btn btn-light" to="/search">
-          Find a Babysitter
+        <Link
+          to="/search"
+          className="btn btn-primary"
+        >
+          Find Babysitters
         </Link>
       </section>
 
-      <section className="container content-section">
-        <h2 className="section-title">How NearbySitter Works</h2>
+      <section
+        id="login"
+        className="card mx-auto p-4"
+        style={{ maxWidth: '450px' }}
+      >
+        {userName ? (
+          <div className="text-center">
+            <h2>Welcome!</h2>
 
-        <div className="feature-grid">
-          <article className="feature-card border shadow-sm">
-            <div className="feature-icon" aria-hidden="true">📍</div>
-            <h3>Search Nearby</h3>
-            <p>
-              Browse babysitters in your area and explore
-              their profiles, experience, and availability.
-            </p>
-          </article>
+            <p>{userName}</p>
 
-          <article className="feature-card border shadow-sm">
-            <div className="feature-icon" aria-hidden="true">⭐</div>
-            <h3>Compare Sitters</h3>
-            <p>
-              Review sitter details, hourly rates, and
-              example ratings to find a good match.
-            </p>
-          </article>
+            <Link
+              to="/profile"
+              className="btn btn-primary m-2"
+            >
+              My Profile
+            </Link>
 
-          <article className="feature-card border shadow-sm">
-            <div className="feature-icon" aria-hidden="true">💬</div>
-            <h3>Connect Easily</h3>
-            <p>
-              Send babysitting requests and communicate
-              with sitters when messaging is available.
-            </p>
-          </article>
-        </div>
-      </section>
+            <Link
+              to="/messages"
+              className="btn btn-outline-primary m-2"
+            >
+              Messages
+            </Link>
 
-      <section className="container content-section" id="login">
-        <div className="login-section border shadow-sm">
-          <h2>Welcome Back!</h2>
+            <button
+              className="btn btn-danger m-2"
+              onClick={onLogout}
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-center">
+              Login
+            </h2>
 
-          <form id="login-form" onSubmit={handleLogin}>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label htmlFor="email">
+                  Email
+                </label>
 
-              <input
-                type="email"
-                className="form-control"
-                id="email"
-                name="email"
-                placeholder="Enter your email"
-                autoComplete="email"
-                required
-              />
-            </div>
+                <input
+                  id="email"
+                  type="email"
+                  className="form-control"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
+                  required
+                />
+              </div>
 
-            <div className="mb-3">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
+              <div className="mb-3">
+                <label htmlFor="password">
+                  Password
+                </label>
 
-              <input
-                type="password"
-                className="form-control"
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                required
-              />
-            </div>
+                <input
+                  id="password"
+                  type="password"
+                  className="form-control"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
+                  required
+                />
+              </div>
 
-            <div className="login-buttons">
-              <button className="btn btn-primary" type="submit">
+              {error && (
+                <p className="text-danger">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary w-100 mb-2"
+              >
                 Login
               </button>
 
               <button
-                className="btn btn-outline-primary"
-                type="button"
-                id="create-account"
-                onClick={handleCreateAccount}
+                type="submit"
+                className="btn btn-outline-primary w-100"
               >
                 Create Account
               </button>
-            </div>
-          </form>
-
-          <p className="placeholder-note">
-            Demo only: login and registration will be
-            connected to the backend in a future deliverable.
-          </p>
-
-          <p className="placeholder-note">
-            User status: Not logged in
-          </p>
-        </div>
-      </section>
-
-      <section className="cta">
-        <h2>Ready to find your next babysitter?</h2>
-        <p>
-          Explore available sitters and find someone
-          who fits your needs.
-        </p>
-
-        <Link to="/search" className="btn btn-primary">
-          Browse Babysitters
-        </Link>
+            </form>
+          </>
+        )}
       </section>
     </main>
   );
