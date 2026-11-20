@@ -1,57 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
-const sitters = [
-  {
-    id: 1,
-    name: 'Sarah Jenkins',
-    location: 'Chicago, IL',
-    rating: 4.9,
-    reviews: 24,
-    price: 22,
-    distance: '0.8 miles away',
-    experience: 6,
-    tags: ['CPR Certified', 'First Aid', 'Non-smoker'],
-    bio: 'Experienced preschool teacher looking for weekend sitting.',
-  },
-  {
-    id: 2,
-    name: 'Michael Chen',
-    location: 'Chicago, IL',
-    rating: 4.8,
-    reviews: 15,
-    price: 18,
-    distance: '1.2 miles away',
-    experience: 4,
-    tags: ['Has Car', 'Homework Help', 'Toddlers'],
-    bio: 'College student with 4 years of experience with all ages.',
-  },
-  {
-    id: 3,
-    name: 'Elena Rodriguez',
-    location: 'Provo, UT',
-    rating: 5.0,
-    reviews: 42,
-    price: 25,
-    distance: '2.5 miles away',
-    experience: 10,
-    tags: ['Bilingual', 'Infant Care', 'Cooks'],
-    bio: 'Professional nanny with 10+ years experience.',
-  },
-  {
-    id: 4,
-    name: 'Jessica Taylor',
-    location: 'Provo, UT',
-    rating: 4.7,
-    reviews: 8,
-    price: 20,
-    distance: '3.1 miles away',
-    experience: 3,
-    tags: ['Pet Friendly', 'Arts & Crafts'],
-    bio: 'Energetic caregiver who loves outdoor activities.',
-  },
-];
-
-export default function Search() {
+export default function Search({ userName }) {
+  const [sitters, setSitters] = useState([]);
+  const [loadingSitters, setLoadingSitters] = useState(true);
+  const [sitterError, setSitterError] = useState('');
+  const [bookingError, setBookingError] = useState('');
+  const [bookingNotice, setBookingNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [experience, setExperience] = useState('any');
   const [sortOrder, setSortOrder] = useState('recommended');
   const [appliedExperience, setAppliedExperience] = useState('any');
@@ -67,6 +24,31 @@ export default function Search() {
   );
 
   const [appliedDate, setAppliedDate] = useState(date);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadSitters() {
+      try {
+        const response = await fetch('/api/sitters', {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Unable to load babysitters.');
+        setSitters(await response.json());
+      } catch {
+        if (!controller.signal.aborted) {
+          setSitterError('Unable to load babysitters. Please refresh to try again.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingSitters(false);
+      }
+    }
+
+    loadSitters();
+    return () => controller.abort();
+  }, []);
+
+  const needsLogin = !userName || sessionExpired;
 
   // Filter babysitters by experience and location.
   let results = sitters.filter((sitter) => {
@@ -100,16 +82,48 @@ export default function Search() {
     setAppliedDate(date);
   }
 
-  // Close booking modal.
   function closeModal() {
     setSelectedSitter(null);
     setMessage('');
+    setBookingError('');
   }
 
-  // Mock booking request.
-  function previewRequest() {
-    alert('Demo only: No booking request was sent.');
-    closeModal();
+  async function submitBooking(event) {
+    event.preventDefault();
+    if (needsLogin || submitting) return;
+
+    setSubmitting(true);
+    setBookingError('');
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sitterId: selectedSitter.id,
+          date: appliedDate,
+          message: message.trim(),
+        }),
+      });
+
+      if (response.status === 401) {
+        setSessionExpired(true);
+        return;
+      }
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        setBookingError(error?.msg || 'Unable to submit your booking request.');
+        return;
+      }
+
+      setBookingNotice(`Booking request for ${selectedSitter.name} submitted.`);
+      closeModal();
+    } catch {
+      setBookingError('Unable to submit your booking request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -221,11 +235,19 @@ export default function Search() {
 
           <p className="placeholder-note">
             Sample profiles for demonstration only.
-            Availability and bookings are not real.
+            Requests are recorded for this demo.
           </p>
 
+          {bookingNotice && (
+            <p className="alert alert-success" role="status">{bookingNotice}</p>
+          )}
+
           <div className="sitter-grid" id="sitter-list">
-            {results.length === 0 ? (
+            {loadingSitters ? (
+              <p role="status">Loading babysitters…</p>
+            ) : sitterError ? (
+              <p role="alert">{sitterError}</p>
+            ) : results.length === 0 ? (
               <p>
                 No babysitters match your search.
                 Try another location or experience level.
@@ -289,9 +311,12 @@ export default function Search() {
                     <button
                       className="btn btn-outline-primary w-100 mt-3"
                       type="button"
-                      onClick={() => setSelectedSitter(sitter)}
+                      onClick={() => {
+                        setBookingNotice('');
+                        setSelectedSitter(sitter);
+                      }}
                     >
-                      Preview Booking
+                      Request Booking
                     </button>
                   </div>
                 </article>
@@ -307,7 +332,7 @@ export default function Search() {
           role="presentation"
           style={{ display: 'flex' }}
           onClick={(event) => {
-            if (event.target === event.currentTarget) {
+            if (!submitting && event.target === event.currentTarget) {
               closeModal();
             }
           }}
@@ -323,6 +348,7 @@ export default function Search() {
               type="button"
               aria-label="Close booking request"
               onClick={closeModal}
+              disabled={submitting}
             >
               &times;
             </button>
@@ -337,38 +363,41 @@ export default function Search() {
 
             <p>Rate: ${selectedSitter.price}/hr</p>
 
-            <p className="mb-3">
-              This is a demonstration booking request.
-              No actual message will be sent.
-            </p>
+            {needsLogin ? (
+              <p>
+                {sessionExpired && 'Your session has expired. '}
+                <Link to="/#login">Log in</Link> to request a booking.
+              </p>
+            ) : (
+              <form onSubmit={submitBooking}>
+                <div className="mb-3">
+                  <label htmlFor="booking-message" className="form-label">
+                    Message to Sitter
+                  </label>
 
-            <div className="mb-3">
-              <label
-                htmlFor="booking-message"
-                className="form-label"
-              >
-                Message to Sitter
-              </label>
+                  <textarea
+                    id="booking-message"
+                    className="form-control"
+                    rows={4}
+                    placeholder="Write your message here..."
+                    value={message}
+                    disabled={submitting}
+                    onChange={(event) => setMessage(event.target.value)}
+                  />
+                </div>
 
-              <textarea
-                id="booking-message"
-                className="form-control"
-                rows={4}
-                placeholder="Write your message here..."
-                value={message}
-                onChange={(event) =>
-                  setMessage(event.target.value)
-                }
-              />
-            </div>
+                {bookingError && <p role="alert">{bookingError}</p>}
+                {!appliedDate && <p>Choose a date and apply your search first.</p>}
 
-            <button
-              className="btn btn-primary w-100"
-              type="button"
-              onClick={previewRequest}
-            >
-              Preview Request
-            </button>
+                <button
+                  className="btn btn-primary w-100"
+                  type="submit"
+                  disabled={submitting || !appliedDate}
+                >
+                  {submitting ? 'Submitting…' : 'Submit Request'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -18,24 +18,58 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './main.css';
 
 export default function App() {
-  const [userName, setUserName] = useState(
-    () => localStorage.getItem('userName') || ''
-  );
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
+  // Check authentication when the application starts.
   useEffect(() => {
-    if (userName) {
-      localStorage.setItem('userName', userName);
-    } else {
-      localStorage.removeItem('userName');
-    }
-  }, [userName]);
+    fetch('/api/auth/me')
+      .then(async (response) => {
+        if (response.ok) {
+          const user = await response.json();
+          setUserName(user.email);
+        } else if (response.status !== 401) {
+          setAuthError('Unable to verify your session.');
+        }
+      })
+      .catch(() => {
+        setAuthError('Unable to connect to the server.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   function handleLogin(name) {
     setUserName(name);
+    setAuthError('');
   }
 
-  function handleLogout() {
-    setUserName('');
+  async function handleLogout() {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      setUserName('');
+      setAuthError('');
+      localStorage.removeItem('userName');
+    } catch {
+      setAuthError('Unable to log out. Please try again.');
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="container py-5 text-center">
+        <p>Loading NearbySitter...</p>
+      </main>
+    );
   }
 
   return (
@@ -89,6 +123,12 @@ export default function App() {
         </nav>
       </header>
 
+      {authError && (
+        <div className="alert alert-danger m-3" role="alert">
+          {authError}
+        </div>
+      )}
+
       <Routes>
         <Route
           path="/"
@@ -110,7 +150,7 @@ export default function App() {
           path="/messages"
           element={
             userName ? (
-              <Messages userName={userName} />
+              <Messages key={userName} />
             ) : (
               <Navigate to="/" replace />
             )
@@ -121,7 +161,7 @@ export default function App() {
           path="/profile"
           element={
             userName ? (
-              <Profile userName={userName} />
+              <Profile key={userName} />
             ) : (
               <Navigate to="/" replace />
             )

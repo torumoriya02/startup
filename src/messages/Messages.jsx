@@ -1,92 +1,94 @@
 import React, { useState, useEffect } from 'react';
 
-const sitters = [
-  { id: 1, name: 'Sarah Jenkins' },
-  { id: 2, name: 'Michael Chen' },
-  { id: 3, name: 'Elena Rodriguez' },
-  { id: 4, name: 'Jessica Taylor' },
-];
-
-export default function Messages({ userName }) {
-  const storageKey = `messages-${userName}`;
-
-  const [selectedSitter, setSelectedSitter] = useState(
-    sitters[0]
-  );
-
+export default function Messages() {
+  const [sitters, setSitters] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [messageError, setMessageError] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
+  const selectedSitter = sitters.find((sitter) => sitter.id === selectedId) ?? sitters[0];
 
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Save messages whenever the chat history changes.
   useEffect(() => {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify(messages)
-    );
-  }, [messages, storageKey]);
+    const controller = new AbortController();
 
-  // Simulate incoming WebSocket messages.
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const pending = messages.find(
-        (msg) => msg.sender === 'You' && !msg.replied
-      );
-
-      if (pending) {
-        setMessages((previous) => [
-          ...previous.map((msg) =>
-            msg.id === pending.id
-              ? { ...msg, replied: true }
-              : msg
-          ),
-          {
-            id: crypto.randomUUID(),
-            sitterId: pending.sitterId,
-            sender: pending.sitterName,
-            text: 'Thanks for your message! I will get back to you soon.',
-            time: new Date().toLocaleTimeString(),
-          },
-        ]);
+    async function loadSitters() {
+      try {
+        const response = await fetch('/api/sitters', { signal: controller.signal });
+        if (!response.ok) throw new Error();
+        setSitters(await response.json());
+      } catch {
+        if (!controller.signal.aborted) setLoadError('Unable to load babysitters.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [messages]);
-
-  // Send a new message.
-  function handleSend(event) {
-    event.preventDefault();
-
-    if (!message.trim()) {
-      return;
     }
 
-    const newMessage = {
-      id: crypto.randomUUID(),
-      sitterId: selectedSitter.id,
-      sitterName: selectedSitter.name,
-      sender: 'You',
-      text: message.trim(),
-      time: new Date().toLocaleTimeString(),
-      replied: false,
+    let timeout;
+    async function loadMessages() {
+      try {
+        const response = await fetch('/api/messages', { signal: controller.signal });
+        if (response.status === 401) {
+          setMessageError('Your session expired. Log in again to see your messages.');
+          return;
+        }
+        if (!response.ok) throw new Error();
+        const history = await response.json();
+        setMessages((previous) => {
+          const knownIds = new Set(history.map((item) => item.id));
+          return [...history, ...previous.filter((item) => !knownIds.has(item.id))];
+        });
+        setMessageError('');
+      } catch {
+        if (!controller.signal.aborted) setMessageError('Unable to load messages.');
+      }
+
+      if (!controller.signal.aborted) timeout = setTimeout(loadMessages, 3000);
+    }
+
+    loadSitters();
+    loadMessages();
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
     };
+  }, []);
 
-    setMessages((previous) => [
-      ...previous,
-      newMessage,
-    ]);
+  async function handleSend(event) {
+    event.preventDefault();
+    const text = message.trim();
+    if (!selectedSitter || !text || sending) return;
 
-    setMessage('');
+    setSending(true);
+    setSendError('');
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sitterId: selectedSitter.id, text }),
+      });
+      if (response.status === 401) {
+        setSendError('Your session expired. Log in again to send messages.');
+        return;
+      }
+      if (!response.ok) throw new Error();
+
+      const sent = await response.json();
+      setMessages((previous) =>
+        previous.some((item) => item.id === sent.id) ? previous : [...previous, sent]
+      );
+      setMessage('');
+    } catch {
+      setSendError('Unable to send your message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   }
 
-  // Display only the selected conversation.
-  const conversation = messages.filter(
-    (msg) => msg.sitterId === selectedSitter.id
-  );
+  const conversation = messages.filter((item) => item.sitterId === selectedSitter?.id);
 
   return (
     <main className="container content-section">
@@ -96,7 +98,12 @@ export default function Messages({ userName }) {
         Connect with babysitters and discuss booking details.
       </p>
 
-      <div className="row g-3">
+      {loading && <p role="status">Loading conversations…</p>}
+      {loadError && <p role="alert">{loadError}</p>}
+      {messageError && <p role="alert">{messageError}</p>}
+      {!loading && !loadError && !selectedSitter && <p>No babysitters are listed.</p>}
+
+      <div className="row g-3" hidden={!selectedSitter}>
 
         {/* Conversation list */}
         <div className="col-md-4">
@@ -112,11 +119,11 @@ export default function Messages({ userName }) {
                   type="button"
                   className={
                     'list-group-item list-group-item-action ' +
-                    (selectedSitter.id === sitter.id
+                    (selectedSitter?.id === sitter.id
                       ? 'active'
                       : '')
                   }
-                  onClick={() => setSelectedSitter(sitter)}
+                  onClick={() => setSelectedId(sitter.id)}
                 >
                   {sitter.name}
                 </button>
@@ -131,7 +138,7 @@ export default function Messages({ userName }) {
 
             <div className="card-header">
               <h5 className="mb-0">
-                {selectedSitter.name}
+                {selectedSitter?.name}
               </h5>
 
               <small className="text-muted">
@@ -176,7 +183,7 @@ export default function Messages({ userName }) {
                         {msg.text}
                       </p>
 
-                      <small>{msg.time}</small>
+                      <small>{new Date(msg.time).toLocaleTimeString()}</small>
                     </div>
                   </div>
                 ))
@@ -185,6 +192,7 @@ export default function Messages({ userName }) {
 
             {/* Message input */}
             <div className="card-footer">
+              {sendError && <p role="alert">{sendError}</p>}
               <form
                 onSubmit={handleSend}
                 className="d-flex gap-2"
@@ -195,6 +203,7 @@ export default function Messages({ userName }) {
                   placeholder="Type a message..."
                   aria-label="Message"
                   value={message}
+                  disabled={sending}
                   onChange={(event) =>
                     setMessage(event.target.value)
                   }
@@ -203,9 +212,9 @@ export default function Messages({ userName }) {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!message.trim()}
+                  disabled={sending || !message.trim()}
                 >
-                  Send
+                  {sending ? 'Sending…' : 'Send'}
                 </button>
               </form>
             </div>
@@ -216,7 +225,6 @@ export default function Messages({ userName }) {
 
       <p className="placeholder-note mt-3">
         Messages and automatic replies are simulated.
-        No real messages are sent.
       </p>
     </main>
   );

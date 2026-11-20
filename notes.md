@@ -3,8 +3,8 @@
 This file represents what I have learned about web programming.
 I love web programming
 
-- [My startup](https://startup.cs260.click)
-- [My simon](https://simon.cs260.click)
+- [My startup](https://startup.findbabysitters.click)
+- [My simon](https://simon.findbabysitters.click)
 
 ## Helpful links
 
@@ -50,3 +50,13 @@ I learned how to use CSS to make websites more visually appealing and responsive
 I learned that `main.css` contains common styles for the entire website, while `play.css`, `scores.css`, and `about.css` provide styles for individual pages.
 
 I successfully deployed Simon CSS to my AWS server.
+
+
+## Startup Service
+
+- Run the React and Express applications separately in development. Vite forwards relative `/api` requests to port 4000 so the browser can use the same URLs in development and production.
+- Express serves the production React build with static middleware. Direct visits to React routes load the same entry page so React Router can render the requested route.
+- Keep the session token in an HTTP-only cookie. The browser sends the cookie on same-origin requests, and Express middleware uses it to look up the signed-in user before handling protected routes.
+- Hash passwords with BCrypt when creating accounts and use BCrypt comparison during login. Account ownership determines which bookings, messages, and profile data a session can access.
+- Messages polls Express for conversation updates, including automatic replies. In-memory data lasts until the Express process restarts.
+- Keep network failures, empty results, and successful actions distinct in the UI. For example, a failed sitter fetch shows an error instead of an empty search result.

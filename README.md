@@ -136,16 +136,39 @@ For this deliverable I did the following. I checked the box `[x]` and added a de
 
 ## 🚀 Service deliverable
 
-For this deliverable I did the following. I checked the box `[x]` and added a description for things I completed.
+- [x] **Node.js and Express** serve the Startup API on port 4000 by default.
+- [x] **Static frontend** is served from the backend's `public` directory after deployment. Express returns the React entry point for routes such as `/search`.
+- [x] **Third-party API** supplies the quote shown on the home page using a browser fetch to `https://quote.cs260.click`.
+- [x] **Backend endpoints** provide sitter listings, bookings, messages, and account profiles.
+- [x] **Frontend integration** connects Search to sitter listings and booking submission, Messages to conversation history and sending, and Profile to loading and saving account details.
+- [x] **Authentication** supports account creation, login, logout, and protected endpoints using an HTTP-only session cookie.
+- [x] **BCrypt** hashes passwords during registration and checks the hash during login.
 
-- [ ] I completed the prerequisites for this deliverable (Simon deployed, GitHub link, Git commits)
-- [ ] **Node.js/Express HTTP service** - I did not complete this part of the deliverable.
-- [ ] **Static middleware for frontend** - I did not complete this part of the deliverable.
-- [ ] **Calls to third party endpoints** - I did not complete this part of the deliverable.
-- [ ] **Backend service endpoints** - I did not complete this part of the deliverable.
-- [ ] **Frontend calls service endpoints** - I did not complete this part of the deliverable.
-- [ ] **Supports registration, login, logout, and restricted endpoint** - I did not complete this part of the deliverable.
-- [ ] **Uses BCrypt to hash passwords** - I did not complete this part of the deliverable.
+| Feature | Endpoints |
+| --- | --- |
+| Account | `POST /api/auth/create`, `POST /api/auth/login`, `GET /api/auth/me`, `DELETE /api/auth/logout` |
+| Search | `GET /api/sitters` |
+| Bookings | `GET /api/bookings`, `POST /api/bookings` |
+| Messages | `GET /api/messages`, `POST /api/messages` |
+| Profile | `GET /api/profile`, `PUT /api/profile` |
+
+The service uses sample sitter profiles and automatic demo replies. Accounts, messages, bookings, and profile changes are stored in memory and reset when the service restarts.
+
+### Run locally
+
+```sh
+npm ci
+npm ci --prefix service
+node service/index.js
+```
+
+In another terminal, run `npm run dev` and open `http://localhost:5173`. Vite proxies browser requests under `/api` to Express. Run `npm run build` to verify the production bundle.
+
+### Deploy to AWS
+
+```sh
+./deployService.sh -k /path/to/production.pem -h findbabysitters.click -s startup
+```
 
 ## 🚀 DB deliverable
 
