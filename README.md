@@ -136,6 +136,7 @@ For this deliverable I did the following. I checked the box `[x]` and added a de
 
 ## 🚀 Service deliverable
 
+- [x] **Simon Service** is running on AWS. The public home page and authenticated API guard were verified. [Simon Service](https://simon.findbabysitters.click)
 - [x] **Node.js and Express** serve the Startup API on port 4000 by default.
 - [x] **Static frontend** is served from the backend's `public` directory after deployment. Express returns the React entry point for routes such as `/search`.
 - [x] **Third-party API** supplies the quote shown on the home page using a browser fetch to `https://quote.cs260.click`.
@@ -162,13 +163,20 @@ npm ci --prefix service
 node service/index.js
 ```
 
-In another terminal, run `npm run dev` and open `http://localhost:5173`. Vite proxies browser requests under `/api` to Express. Run `npm run build` to verify the production bundle.
+In another terminal, run `npm run dev` and open `http://localhost:5173`. Vite proxies browser requests under `/api` to Express. Run `npm run build` to verify the production bundle. Vite serves the React entry point for direct visits to `/search`, `/messages`, and `/profile`.
+
+### Verification
+
+- The local API check covered registration, login and logout, protected routes, user isolation, booking creation, message delivery with a demo reply, and profile updates.
+- The browser check covered the Vite proxy, search filters, the guest booking prompt, account creation, booking submission, messages, profile changes after reload, and logout.
 
 ### Deploy to AWS
 
 ```sh
 ./deployService.sh -k /path/to/production.pem -h findbabysitters.click -s startup
 ```
+
+The [AWS deployment](https://startup.findbabysitters.click) routes HTTPS traffic through Caddy to Express on port 4000. Production smoke checks verified the home page, the direct search route, the sitter listing, and the unauthenticated response from the session endpoint.
 
 ## 🚀 DB deliverable
 
