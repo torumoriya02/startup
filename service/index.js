@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
 
+const DB = require('./database.js');
+
 const app = express();
 
 const port = process.argv.length > 2
@@ -16,12 +18,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory data
-let users = [];
-let messages = [];
-let bookings = [];
-
-const sitters = [
+// Initial babysitter data
+const initialSitters = [
   {
     id: 1,
     name: 'Sarah Jenkins',
@@ -77,13 +75,6 @@ const apiRouter = express.Router();
 
 app.use('/api', apiRouter);
 
-// Authentication helper
-function findUser(field, value) {
-  if (!value) return null;
-
-  return users.find((user) => user[field] === value);
-}
-
 // Authentication cookie
 function setAuthCookie(res, token) {
   res.cookie(authCookieName, token, {
@@ -93,10 +84,9 @@ function setAuthCookie(res, token) {
   });
 }
 
-// Verify authentication
-function verifyAuth(req, res, next) {
-  const user = findUser(
-    'token',
+// Verify authentication using MongoDB
+async function verifyAuth(req, res, next) {
+  const user = await DB.getUserByToken(
     req.cookies[authCookieName]
   );
 
@@ -112,7 +102,7 @@ function verifyAuth(req, res, next) {
 
 // Create account
 apiRouter.post('/auth/create', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (
     typeof email !== 'string' ||
@@ -128,19 +118,13 @@ apiRouter.post('/auth/create', async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  if (findUser('email', normalizedEmail)) {
+  if (await DB.getUser(normalizedEmail)) {
     return res.status(409).send({
       msg: 'User already exists',
     });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-
-  if (findUser('email', normalizedEmail)) {
-    return res.status(409).send({
-      msg: 'User already exists',
-    });
-  }
 
   const user = {
     id: randomUUID(),
@@ -152,7 +136,17 @@ apiRouter.post('/auth/create', async (req, res) => {
     bio: '',
   };
 
-  users.push(user);
+  try {
+    await DB.addUser(user);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).send({
+        msg: 'User already exists',
+      });
+    }
+
+    throw error;
+  }
 
   setAuthCookie(res, user.token);
 
@@ -163,7 +157,7 @@ apiRouter.post('/auth/create', async (req, res) => {
 
 // Login
 apiRouter.post('/auth/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (
     typeof email !== 'string' ||
@@ -175,8 +169,7 @@ apiRouter.post('/auth/login', async (req, res) => {
     });
   }
 
-  const user = findUser(
-    'email',
+  const user = await DB.getUser(
     email.trim().toLowerCase()
   );
 
@@ -189,9 +182,11 @@ apiRouter.post('/auth/login', async (req, res) => {
     });
   }
 
-  user.token = randomUUID();
+  const token = randomUUID();
 
-  setAuthCookie(res, user.token);
+  await DB.updateUser(user.id, { token });
+
+  setAuthCookie(res, token);
 
   res.send({
     email: user.email,
@@ -199,15 +194,10 @@ apiRouter.post('/auth/login', async (req, res) => {
 });
 
 // Logout
-apiRouter.delete('/auth/logout', (req, res) => {
-  const user = findUser(
-    'token',
+apiRouter.delete('/auth/logout', async (req, res) => {
+  await DB.removeUserToken(
     req.cookies[authCookieName]
   );
-
-  if (user) {
-    delete user.token;
-  }
 
   res.clearCookie(authCookieName, {
     secure: true,
@@ -218,7 +208,7 @@ apiRouter.delete('/auth/logout', (req, res) => {
   res.status(204).end();
 });
 
-// Get current authenticated user
+// Get authenticated user
 apiRouter.get('/auth/me', verifyAuth, (req, res) => {
   res.send({
     email: req.user.email,
@@ -226,27 +216,25 @@ apiRouter.get('/auth/me', verifyAuth, (req, res) => {
   });
 });
 
-// Get all babysitters
-apiRouter.get('/sitters', (req, res) => {
+// Get babysitters from MongoDB
+apiRouter.get('/sitters', async (req, res) => {
+  const sitters = await DB.getSitters();
+
   res.send(sitters);
 });
 
-// Get messages for the current user
-apiRouter.get('/messages', verifyAuth, (req, res) => {
-  const userMessages = messages.filter(
-    (message) => message.userId === req.user.id
-  );
+// Get messages from MongoDB
+apiRouter.get('/messages', verifyAuth, async (req, res) => {
+  const messages = await DB.getMessages(req.user.id);
 
-  res.send(userMessages);
+  res.send(messages);
 });
 
 // Send a message
-apiRouter.post('/messages', verifyAuth, (req, res) => {
-  const { sitterId, text } = req.body;
+apiRouter.post('/messages', verifyAuth, async (req, res) => {
+  const { sitterId, text } = req.body || {};
 
-  const sitter = sitters.find(
-    (sitter) => sitter.id === Number(sitterId)
-  );
+  const sitter = await DB.getSitter(sitterId);
 
   if (!sitter || typeof text !== 'string' || !text.trim()) {
     return res.status(400).send({
@@ -264,40 +252,40 @@ apiRouter.post('/messages', verifyAuth, (req, res) => {
     time: new Date().toISOString(),
   };
 
-  messages.push(message);
+  await DB.addMessage(message);
 
-  // Simulate a babysitter reply
-  setTimeout(() => {
-    messages.push({
-      id: randomUUID(),
-      userId: message.userId,
-      sitterId: sitter.id,
-      sitterName: sitter.name,
-      sender: sitter.name,
-      text: 'Thanks for your message! I will get back to you soon.',
-      time: new Date().toISOString(),
-    });
+  // Simulated babysitter reply
+  setTimeout(async () => {
+    try {
+      await DB.addMessage({
+        id: randomUUID(),
+        userId: message.userId,
+        sitterId: sitter.id,
+        sitterName: sitter.name,
+        sender: sitter.name,
+        text: 'Thanks for your message! I will get back to you soon.',
+        time: new Date().toISOString(),
+      });
+    } catch {
+      console.error('Unable to save simulated reply');
+    }
   }, 5000);
 
   res.status(201).send(message);
 });
 
 // Get booking requests
-apiRouter.get('/bookings', verifyAuth, (req, res) => {
-  const userBookings = bookings.filter(
-    (booking) => booking.userId === req.user.id
-  );
+apiRouter.get('/bookings', verifyAuth, async (req, res) => {
+  const bookings = await DB.getBookings(req.user.id);
 
-  res.send(userBookings);
+  res.send(bookings);
 });
 
-// Create a booking request
-apiRouter.post('/bookings', verifyAuth, (req, res) => {
-  const { sitterId, date, message } = req.body;
+// Create booking request
+apiRouter.post('/bookings', verifyAuth, async (req, res) => {
+  const { sitterId, date, message } = req.body || {};
 
-  const sitter = sitters.find(
-    (sitter) => sitter.id === Number(sitterId)
-  );
+  const sitter = await DB.getSitter(sitterId);
 
   if (
     !sitter ||
@@ -319,7 +307,7 @@ apiRouter.post('/bookings', verifyAuth, (req, res) => {
     status: 'Pending',
   };
 
-  bookings.push(booking);
+  await DB.addBooking(booking);
 
   res.status(201).send(booking);
 });
@@ -335,26 +323,37 @@ apiRouter.get('/profile', verifyAuth, (req, res) => {
 });
 
 // Update user profile
-apiRouter.put('/profile', verifyAuth, (req, res) => {
-  const { name, location, bio } = req.body;
+apiRouter.put('/profile', verifyAuth, async (req, res) => {
+  const { name, location, bio } = req.body || {};
+
+  const updates = {};
 
   if (typeof name === 'string') {
-    req.user.name = name;
+    updates.name = name;
   }
 
   if (typeof location === 'string') {
-    req.user.location = location;
+    updates.location = location;
   }
 
   if (typeof bio === 'string') {
-    req.user.bio = bio;
+    updates.bio = bio;
   }
 
+  if (Object.keys(updates).length > 0) {
+    await DB.updateUser(req.user.id, updates);
+  }
+
+  const updatedUser = {
+    ...req.user,
+    ...updates,
+  };
+
   res.send({
-    email: req.user.email,
-    name: req.user.name,
-    location: req.user.location,
-    bio: req.user.bio,
+    email: updatedUser.email,
+    name: updatedUser.name,
+    location: updatedUser.location,
+    bio: updatedUser.bio,
   });
 });
 
@@ -365,15 +364,6 @@ apiRouter.use((_req, res) => {
   });
 });
 
-// Default error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-
-  res.status(500).send({
-    msg: 'Internal server error',
-  });
-});
-
 // React frontend fallback
 app.use((_req, res) => {
   res.sendFile(
@@ -381,7 +371,34 @@ app.use((_req, res) => {
   );
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`NearbySitter service listening on port ${port}`);
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Request failed:', err.name);
+
+  res.status(500).send({
+    msg: 'Internal server error',
+  });
 });
+
+// Connect to MongoDB before starting the server
+async function startServer() {
+  try {
+    await DB.connectDatabase(initialSitters);
+
+    app.listen(port, () => {
+      console.log(
+        `NearbySitter service listening on port ${port}`
+      );
+    });
+  } catch (error) {
+    console.error(
+      'Unable to initialize database:',
+      error.name,
+      error.code || ''
+    );
+
+    process.exit(1);
+  }
+}
+
+startServer();
